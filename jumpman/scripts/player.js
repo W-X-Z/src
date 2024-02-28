@@ -97,6 +97,16 @@ class Player {
     // 마우스 드래그 중
     updateDrag(x, y) {
         if (!this.dragging || !this.dragStart) return;
+            
+        // 위로 드래그했을 때는 점프가 발생하지 않도록 조건 추가
+        if (y < this.dragStart.y) {
+            return;
+        }
+
+        // 공중에 있는 동안에는 드래그가 발생하지 않도록 조건 추가
+        if (this.y < 0) {
+            return;
+        }
 
         // 드래그 거리 계산으로 점프 게이지 설정 (예시)
         const dragDistance = Math.sqrt(Math.pow(x - this.dragStart.x, 2) + Math.pow(y - this.dragStart.y, 2));
@@ -113,15 +123,18 @@ class Player {
     }
 
     update = (dt) => {
-        if (!this.dragging && this.jumpGauge > 0) {
-            // 점프 실행
-            this.sy = -this.jumpGauge; // 점프 강도에 따라 Y축 속도 설정
-            this.sx = this.jumpSpeedX; // 드래그 방향에 따라 X축 속도 설정
-            // 점프 후 초기화
-            this.jumpGauge = 0;
-            this.jumpSpeedX = 0;
-            this.controllable = false; // 점프 동안 추가 조작 방지
+        if (this.controllable){
+            if (!this.dragging && this.jumpGauge > 0) {
+                // 점프 실행
+                this.sy = -this.jumpGauge; // 점프 강도에 따라 Y축 속도 설정
+                this.sx = this.jumpSpeedX; // 드래그 방향에 따라 X축 속도 설정
+                // 점프 후 초기화
+                this.jumpGauge = 0;
+                this.jumpSpeedX = 0;
+                this.controllable = false; // 점프 동안 추가 조작 방지
+            }
         }
+
         
         // scene move check
         if(this.y < -EPSILON) {
