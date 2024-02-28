@@ -1,5 +1,10 @@
 console.log("LOAD SCRIPT: player.js")
 
+
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+
 // key event handler
 window.onkeydown = (e) => {
     if(e.code == "ArrowRight") KEYINPUTS.arrowRight = true
@@ -49,9 +54,15 @@ class Player {
 
         this._shape = new Rectangle(this.x, this.y, this.w, this.h)
 
-        this.controllable = false
+        this.controllable = true;
 
         this.state = PLAYER_STATE.JUMP
+
+        // 마우스 드래그 관련 속성 추가
+        this.dragStart = null;
+        this.dragEnd = null;
+        this.dragging = false;
+
     }
 
     get shape() {
@@ -77,53 +88,39 @@ class Player {
         this.image['fell'].src = this.imageDir + "/fell.png";
     }
 
-    update = (dt) => {
+    // 마우스 드래그 시작
+    startDrag(x, y) {
+        this.dragStart = { x, y };
+        this.dragging = true;
+    }
 
-        // handle key inputs
-        if(this.controllable) {
-            this.sx = 0
-            if(KEYINPUTS.arrowRight) {
-                this.state = PLAYER_STATE.WALK
-                if(this.jumpSpeedX === null) this.sx += this.acc
-            }
-            else {
-                if(this.state == PLAYER_STATE.WALK) this.state = PLAYER_STATE.IDLE
-            }
-            if(KEYINPUTS.arrowLeft) {
-                this.state = PLAYER_STATE.WALK
-                if(this.jumpSpeedX === null) this.sx -= this.acc
-            }
-            else {
-                if(this.state == PLAYER_STATE.WALK) this.state = PLAYER_STATE.IDLE
-            }
-            if(KEYINPUTS.space) {
-                this.state = PLAYER_STATE.JUMPREADY
-                if(this.jumpSpeedX === null) {
-                    this.jumpSpeedX = this.sx
-                    this.sx = 0
-                }
-                if(KEYINPUTS.arrowRight) {
-                    this.jumpSpeedX = Math.min(this.jumpSpeedX+this.jumpSpeedXGather, this.maxAcc)
-                }
-                else if(this.jumpSpeedX > 0) {
-                    this.jumpSpeedX = Math.max(this.jumpSpeedX-this.jumpSpeedXGather, 0)
-                }
-                if(KEYINPUTS.arrowLeft) {
-                    this.jumpSpeedX = Math.max(this.jumpSpeedX-this.jumpSpeedXGather, -this.maxAcc)
-                }
-                else if(this.jumpSpeedX < 0) {
-                    this.jumpSpeedX = Math.min(this.jumpSpeedX+this.jumpSpeedXGather, 0)
-                }
-                this.jumpGauge = Math.min(this.jumpGauge+this.jumpGather, this.maxJump)
-            }
-            else if(this.jumpGauge > 0) {
-                this.state = PLAYER_STATE.JUMP
-                this.sy = -this.jumpGauge
-                this.sx = this.jumpSpeedX
-                this.jumpGauge = 0
-                this.jumpSpeedX = null
-                this.controllable = false
-            }
+    // 마우스 드래그 중
+    updateDrag(x, y) {
+        if (!this.dragging || !this.dragStart) return;
+
+        // 드래그 거리 계산으로 점프 게이지 설정 (예시)
+        const dragDistance = Math.sqrt(Math.pow(x - this.dragStart.x, 2) + Math.pow(y - this.dragStart.y, 2));
+        this.jumpGauge = Math.min(dragDistance / 4, this.maxJump); // 조정계수, maxJump는 최대 점프 게이지
+
+        // 드래그 방향에 따른 점프 방향 설정 (드래그 반대 방향)
+        this.jumpSpeedX = (this.dragStart.x - x) /12; // 조정계수, 기본값 10
+    }
+
+    // 마우스 드래그 종료
+    endDrag() {
+        this.dragging = false;
+        // 점프 실행 로직을 여기에 추가할 수 있음
+    }
+
+    update = (dt) => {
+        if (!this.dragging && this.jumpGauge > 0) {
+            // 점프 실행
+            this.sy = -this.jumpGauge; // 점프 강도에 따라 Y축 속도 설정
+            this.sx = this.jumpSpeedX; // 드래그 방향에 따라 X축 속도 설정
+            // 점프 후 초기화
+            this.jumpGauge = 0;
+            this.jumpSpeedX = 0;
+            this.controllable = false; // 점프 동안 추가 조작 방지
         }
         
         // scene move check
@@ -375,8 +372,26 @@ class Player {
         if(this.state == PLAYER_STATE.JUMP) CTX.drawImage(this.image.jump, tx, ty, tw, th)
         if(this.state == PLAYER_STATE.FALL) CTX.drawImage(this.image.fall, tx, ty, tw, th)
         if(this.state == PLAYER_STATE.FELL) CTX.drawImage(this.image.fell, tx, ty, tw, th)
+
+        if (this.dragging) {
+            // 점프 방향과 강도에 따른 화살표 그리기
+            const jumpPowerScale = 1; // 점프 파워 스케일링 계수
+            const arrowLength = this.jumpGauge * jumpPowerScale; // 화살표 길이
+            const angle = Math.atan2(-this.jumpGauge / 2, this.jumpSpeedX); // 점프 방향 각도 (Y축은 위로 점프하므로 음수 사용)
+    
+            const arrowEndX = tx + Math.cos(angle) * arrowLength; // 화살표 끝점 X 좌표
+            const arrowEndY = ty + Math.sin(angle) * arrowLength; // 화살표 끝점 Y 좌표
+    
+            // 화살표 그리기
+            CTX.beginPath();
+            CTX.moveTo(tx+this.w, ty); // 플레이어 위치에서 시작
+            CTX.lineTo(arrowEndX, arrowEndY); // 계산된 끝점으로 화살표 그림
+            CTX.strokeStyle = 'red'; // 화살표 색상 설정
+            CTX.stroke();
+        }
     }
 }
 
 // sequential importer
 loadScriptFile(scriptsToLoad[++loadIndex])
+
