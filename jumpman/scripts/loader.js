@@ -95,6 +95,51 @@ const runWorld = () => {
 loadJsonMap(MAPS["sampleWorld"])
 runWorld()
 
+// player 객체에 대한 이벤트 리스너 설정
+function setupPlayerControls() {
+    const player = NOW_WORLD.player; // NOW_WORLD.player가 player 객체입니다.
+
+    // 마우스 이벤트 리스너
+    document.addEventListener('mousedown', function(e) {
+        player.startDrag(e.clientX, e.clientY); // 드래그 시작
+        e.preventDefault(); // 기본 동작 방지
+    }, { passive: false });
+
+    document.addEventListener('mousemove', function(e) {
+        if (player.dragging) {
+            player.updateDrag(e.clientX, e.clientY); // 드래그 중 업데이트
+            e.preventDefault(); // 기본 동작 방지
+        }
+    }, { passive: false });
+
+    document.addEventListener('mouseup', function() {
+        player.endDrag(); // 드래그 끝
+        // 여기서는 preventDefault 호출할 필요 없음
+    });
+
+    // 터치 이벤트 리스너
+    document.addEventListener('touchstart', function(e) {
+        const touch = e.touches[0]; // 첫 번째 터치 이벤트
+        player.startDrag(touch.clientX, touch.clientY); // 드래그 시작
+        e.preventDefault(); // 기본 동작 방지
+    }, { passive: false });
+
+    document.addEventListener('touchmove', function(e) {
+        if (player.dragging) {
+            const touch = e.touches[0]; // 첫 번째 터치 이벤트
+            player.updateDrag(touch.clientX, touch.clientY); // 드래그 중 업데이트
+            e.preventDefault(); // 기본 동작 방지
+        }
+    }, { passive: false });
+
+    document.addEventListener('touchend', function(e) {
+        player.endDrag(); // 드래그 끝
+        // 여기서는 preventDefault 호출할 필요 없음
+    });
+}
+
+// 모든 것이 로드된 후에 실행
+window.onload = setupPlayerControls;
 
 // sequential importer
 loadScriptFile(scriptsToLoad[++loadIndex])
