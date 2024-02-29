@@ -98,44 +98,49 @@ runWorld()
 // player 객체에 대한 이벤트 리스너 설정
 function setupPlayerControls() {
     const player = NOW_WORLD.player; // NOW_WORLD.player가 player 객체입니다.
+    
+    // 화면 크기를 기반으로 터치 디바이스 여부 판별
+    const isTouchDevice = window.innerWidth <= 768; // 예: 768px 미만은 터치 디바이스로 가정
 
-    // 마우스 이벤트 리스너
-    document.addEventListener('mousedown', function(e) {
-        player.startDrag(e.clientX, e.clientY); // 드래그 시작
-        e.preventDefault(); // 기본 동작 방지
-    }, { passive: false });
+    // 마우스 이벤트 리스너는 터치 디바이스가 아닐 때만 적용
+    if (!isTouchDevice) {
+        document.addEventListener('mousedown', function(e) {
+            player.startDrag(e.clientX, e.clientY);
+            e.preventDefault();
+        }, { passive: false });
 
-    document.addEventListener('mousemove', function(e) {
-        if (player.dragging) {
-            player.updateDrag(e.clientX, e.clientY); // 드래그 중 업데이트
-            e.preventDefault(); // 기본 동작 방지
-        }
-    }, { passive: false });
+        document.addEventListener('mousemove', function(e) {
+            if (player.dragging) {
+                player.updateDrag(e.clientX, e.clientY);
+                e.preventDefault();
+            }
+        }, { passive: false });
 
-    document.addEventListener('mouseup', function() {
-        player.endDrag(); // 드래그 끝
-        // 여기서는 preventDefault 호출할 필요 없음
-    });
+        document.addEventListener('mouseup', function() {
+            player.endDrag();
+        });
+    }
 
-    // 터치 이벤트 리스너
-    document.addEventListener('touchstart', function(e) {
-        const touch = e.touches[0]; // 첫 번째 터치 이벤트
-        player.startDrag(touch.clientX, touch.clientY); // 드래그 시작
-        e.preventDefault(); // 기본 동작 방지
-    }, { passive: false });
+    // 터치 이벤트 리스너는 터치 디바이스일 때만 적용
+    if (isTouchDevice) {
+        document.addEventListener('touchstart', function(e) {
+            const touch = e.touches[0];
+            player.startDrag(touch.clientX, touch.clientY);
+            e.preventDefault();
+        }, { passive: false });
 
-    document.addEventListener('touchmove', function(e) {
-        if (player.dragging) {
-            const touch = e.touches[0]; // 첫 번째 터치 이벤트
-            player.updateDrag(touch.clientX, touch.clientY); // 드래그 중 업데이트
-            e.preventDefault(); // 기본 동작 방지
-        }
-    }, { passive: false });
+        document.addEventListener('touchmove', function(e) {
+            if (player.dragging) {
+                const touch = e.touches[0];
+                player.updateDrag(touch.clientX, touch.clientY);
+                e.preventDefault();
+            }
+        }, { passive: false });
 
-    document.addEventListener('touchend', function(e) {
-        player.endDrag(); // 드래그 끝
-        // 여기서는 preventDefault 호출할 필요 없음
-    });
+        document.addEventListener('touchend', function() {
+            player.endDrag();
+        });
+    }
 }
 
 // 모든 것이 로드된 후에 실행
