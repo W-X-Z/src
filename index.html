@@ -23,6 +23,36 @@
             height: 80vh;
             border: 2px solid black;
         }
+
+        /* Media Query for Mobile Devices */
+        @media (max-width: 768px) {
+            #fullscreen {
+                padding-top: 5vh;
+            }
+            .gamearea {
+                width: 90vw;
+                height: 70vh;
+            }
+            canvas#gameCanvas {
+                width: 100vw; /* Adjust canvas size for mobile */
+                height: auto;
+            }
+        }
+
+        /* Media Query for PCs */
+        @media (min-width: 769px) {
+            #fullscreen {
+                padding-top: 10vh;
+            }
+            .gamearea {
+                width: 80vw;
+                height: 80vh;
+            }
+            canvas#gameCanvas {
+                width: 800px; /* Keep original size for PCs */
+                height: 600px;
+            }
+        }
     </style>
 </head>
 <body>
