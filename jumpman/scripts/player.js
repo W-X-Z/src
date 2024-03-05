@@ -77,6 +77,27 @@ class Player {
             return;
         }
     
+        const dragVector = {x:x - this.dragStart.x, y: y-this.dragStart.y};
+        const dragDistance = Math.sqrt(dragVector.x ** 2 + dragVector.y ** 2);
+
+        const maxDragDistance= 100;
+        const normalizedDragDistance = Math.min(dragDistance, maxDragDistance); // 최대 드래그 거리를 넘지 않도록 조절
+        // 드래그 방향에 따른 벡터 정규화
+        const normalizedVector = {
+            x: - dragVector.x / dragDistance,
+            y: dragVector.y / dragDistance
+        };
+
+        const maxJumpPower = 40;
+
+        this.jumpGauge = normalizedVector.y * (normalizedDragDistance / maxDragDistance) * maxJumpPower
+        this.jumpSpeedX = normalizedVector.x * (normalizedDragDistance / maxDragDistance) * maxJumpPower
+        this.jumpSpeedX = Math.max(Math.min(this.jumpSpeedX, maxJumpPower), -maxJumpPower);
+
+        this.normalizedDragDistance = Math.min(dragDistance, maxDragDistance) / maxDragDistance; // 정규화된 드래그 거리를 클래스 속성으로 저장
+
+        /*
+
         // 드래그 거리 계산으로 점프 게이지 설정 (예시)
         const dragDistance = Math.sqrt(Math.pow(x - this.dragStart.x, 2) + Math.pow(y - this.dragStart.y, 2));
         this.jumpGauge = Math.min(dragDistance /9, 45);
@@ -87,13 +108,14 @@ class Player {
     
         // 최대 점프 속도 범위 내에서 클램핑
         this.jumpSpeedX = Math.max(Math.min(this.jumpSpeedX, maxJumpSpeedX), -maxJumpSpeedX);
+
+        */
     }
 
     // 마우스 드래그 종료
     endDrag() {
         this.dragging = false;
-
-        console.log(this.jumpSpeedX);
+        console.log(`Jump Speed X: ${this.jumpSpeedX.toFixed(2)}, Jump Speed Y: ${this.jumpGauge.toFixed(2)}, distance: ${this.normalizedDragDistance}`);
     }
 
     update = (dt) => {
@@ -359,16 +381,15 @@ class Player {
 
         if (this.dragging) {
             // 점프 방향과 강도에 따른 화살표 그리기
-            const jumpPowerScale = 2; // 점프 파워 스케일링 계수
-            const jumpGauge = this.jumpGauge * jumpPowerScale; // 화살표 길이에 점프 게이지를 사용
+            const jumpGauge = this.jumpGauge
             const jumpSpeedX = this.jumpSpeedX;
         
             // 화살표의 실제 길이를 계산할 때 X축과 Y축 변화량을 모두 고려합니다.
             // 여기서는 Y 축 변화량을 점프 게이지의 3분의 1로 고정합니다.
-            const arrowLength = Math.sqrt(Math.pow(jumpGauge / 3, 2) + Math.pow(jumpSpeedX, 2));
+            const arrowLength = Math.sqrt(Math.pow(jumpGauge, 2) + Math.pow(jumpSpeedX, 2)) * 0.5;
         
             // 각도 계산
-            let angle = Math.atan2(jumpGauge / 3, jumpSpeedX);
+            let angle = Math.atan2(jumpGauge , jumpSpeedX);
         
             // 화살표 끝점 계산
             const arrowEndX = tx + tw/2+ Math.cos(angle) * arrowLength;
@@ -380,6 +401,8 @@ class Player {
             CTX.lineTo(arrowEndX, arrowEndY);
             CTX.strokeStyle = 'red';
             CTX.stroke();
+
+            console.log(angle)
         }
     }
 }
