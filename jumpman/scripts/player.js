@@ -4,26 +4,6 @@ console.log("LOAD SCRIPT: player.js")
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
-
-// key event handler
-window.onkeydown = (e) => {
-    if(e.code == "ArrowRight") KEYINPUTS.arrowRight = true
-    if(e.code == "ArrowLeft") KEYINPUTS.arrowLeft = true
-    if(e.code == "Space") KEYINPUTS.space = true
-}
-
-window.onkeyup = (e) => {
-    if(e.code == "ArrowRight") KEYINPUTS.arrowRight = false
-    if(e.code == "ArrowLeft") KEYINPUTS.arrowLeft = false
-    if(e.code == "Space") KEYINPUTS.space = false
-}
-
-const KEYINPUTS = {
-    arrowRight: false,
-    arrowLeft: false,
-    space: false
-}
-
 const PLAYER_STATE = {}
 const playerStates = ["IDLE", "WALK", "JUMPREADY", "JUMP", "FALL", "FELL"]
 playerStates.forEach(state => PLAYER_STATE[state] = state)
@@ -40,9 +20,6 @@ class Player {
         this.loadImage()
 
         this.acc = 15
-        this.maxSpeed = 65
-        
-        this.maxJump = 60
         this.jumpGauge = 0
         this.jumpGather = 1
         this.jumpSpeedX = null
@@ -74,14 +51,6 @@ class Player {
     set shape(val) { this._shape = val }
 
     loadImage = () => {
-        this.image['idle'] = new Image()
-        this.image['idle'].src = this.imageDir + "/idle.png";
-        this.image['walk'] = new Image()
-        this.image['walk'].src = this.imageDir + "/walk.png";
-        this.image['jumpGather'] = new Image()
-        this.image['jumpGather'].src = this.imageDir + "/jumpGather.png";
-        this.image['jump'] = new Image()
-        this.image['jump'].src = this.imageDir + "/jump.png";
         this.image['fall'] = new Image()
         this.image['fall'].src = this.imageDir + "/fall.png";
         this.image['fell'] = new Image()
@@ -102,24 +71,27 @@ class Player {
         if (y < this.dragStart.y) {
             return;
         }
-
+    
         // 공중에 있는 동안에는 드래그가 발생하지 않도록 조건 추가
         if (this.y < 0) {
             return;
         }
-
+    
         // 드래그 거리 계산으로 점프 게이지 설정 (예시)
         const dragDistance = Math.sqrt(Math.pow(x - this.dragStart.x, 2) + Math.pow(y - this.dragStart.y, 2));
-        this.jumpGauge = Math.min(dragDistance / 4, this.maxJump); // 조정계수, maxJump는 최대 점프 게이지
-
-        // 드래그 방향에 따른 점프 방향 설정 (드래그 반대 방향)
-        this.jumpSpeedX = (this.dragStart.x - x) /12; // 조정계수, 기본값 10
+        this.jumpGauge = Math.min(dragDistance / 4, 60);
+    
+        // 양쪽 방향의 최대 점프 속도를 동일하게 설정
+        const maxJumpSpeedX = 20; // 최대 점프 속도
+        this.jumpSpeedX = (this.dragStart.x - x) / 20; // 점프 속도 설정
+    
+        // 최대 점프 속도 범위 내에서 클램핑
+        this.jumpSpeedX = Math.max(Math.min(this.jumpSpeedX, maxJumpSpeedX), -maxJumpSpeedX);
     }
 
     // 마우스 드래그 종료
     endDrag() {
         this.dragging = false;
-        // 점프 실행 로직을 여기에 추가할 수 있음
     }
 
     update = (dt) => {
@@ -379,27 +351,32 @@ class Player {
         const [tx, ty] = roundVec(cam([this.x, this.y]))
         const [tw, th] = subVec(roundVec(cam([this.w, this.h])), cam([0, 0]))
 
-        if(this.state == PLAYER_STATE.IDLE) CTX.drawImage(this.image.idle, tx, ty, tw, th)
-        if(this.state == PLAYER_STATE.WALK) CTX.drawImage(this.image.walk, tx, ty, tw, th)
-        if(this.state == PLAYER_STATE.JUMPREADY) CTX.drawImage(this.image.jumpGather, tx, ty, tw, th)
-        if(this.state == PLAYER_STATE.JUMP) CTX.drawImage(this.image.jump, tx, ty, tw, th)
+
         if(this.state == PLAYER_STATE.FALL) CTX.drawImage(this.image.fall, tx, ty, tw, th)
         if(this.state == PLAYER_STATE.FELL) CTX.drawImage(this.image.fell, tx, ty, tw, th)
 
         if (this.dragging) {
             // 점프 방향과 강도에 따른 화살표 그리기
-            const jumpPowerScale = 1; // 점프 파워 스케일링 계수
-            const arrowLength = this.jumpGauge * jumpPowerScale; // 화살표 길이
-            const angle = Math.atan2(-this.jumpGauge / 2, this.jumpSpeedX); // 점프 방향 각도 (Y축은 위로 점프하므로 음수 사용)
-    
-            const arrowEndX = tx + Math.cos(angle) * arrowLength; // 화살표 끝점 X 좌표
-            const arrowEndY = ty + Math.sin(angle) * arrowLength; // 화살표 끝점 Y 좌표
-    
+            const jumpPowerScale = 2; // 점프 파워 스케일링 계수
+            const jumpGauge = this.jumpGauge * jumpPowerScale; // 화살표 길이에 점프 게이지를 사용
+            const jumpSpeedX = this.jumpSpeedX;
+        
+            // 화살표의 실제 길이를 계산할 때 X축과 Y축 변화량을 모두 고려합니다.
+            // 여기서는 Y 축 변화량을 점프 게이지의 3분의 1로 고정합니다.
+            const arrowLength = Math.sqrt(Math.pow(jumpGauge / 3, 2) + Math.pow(jumpSpeedX, 2));
+        
+            // 각도 계산
+            let angle = Math.atan2(jumpGauge / 3, jumpSpeedX);
+        
+            // 화살표 끝점 계산
+            const arrowEndX = tx + tw/2+ Math.cos(angle) * arrowLength;
+            const arrowEndY = ty - Math.sin(angle) * arrowLength;
+        
             // 화살표 그리기
             CTX.beginPath();
-            CTX.moveTo(tx+this.w, ty); // 플레이어 위치에서 시작
-            CTX.lineTo(arrowEndX, arrowEndY); // 계산된 끝점으로 화살표 그림
-            CTX.strokeStyle = 'red'; // 화살표 색상 설정
+            CTX.moveTo(tx + tw/2, ty);
+            CTX.lineTo(arrowEndX, arrowEndY);
+            CTX.strokeStyle = 'red';
             CTX.stroke();
         }
     }
