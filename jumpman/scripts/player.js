@@ -5,7 +5,7 @@ const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
 const PLAYER_STATE = {}
-const playerStates = ["IDLE", "WALK", "JUMPREADY", "JUMP", "FALL", "FELL"]
+const playerStates = ["FALL", "FELL"]
 playerStates.forEach(state => PLAYER_STATE[state] = state)
 
 class Player {
@@ -23,7 +23,7 @@ class Player {
         this.jumpGauge = 0
         this.jumpGather = 1
         this.jumpSpeedX = null
-        this.maxAcc = 30
+        this.maxAcc = 15
         this.jumpSpeedXGather = 0.05
 
         this.sx = 0
@@ -79,11 +79,11 @@ class Player {
     
         // 드래그 거리 계산으로 점프 게이지 설정 (예시)
         const dragDistance = Math.sqrt(Math.pow(x - this.dragStart.x, 2) + Math.pow(y - this.dragStart.y, 2));
-        this.jumpGauge = Math.min(dragDistance / 4, 60);
+        this.jumpGauge = Math.min(dragDistance /9, 45);
     
         // 양쪽 방향의 최대 점프 속도를 동일하게 설정
-        const maxJumpSpeedX = 20; // 최대 점프 속도
-        this.jumpSpeedX = (this.dragStart.x - x) / 20; // 점프 속도 설정
+        const maxJumpSpeedX = 15; // 최대 점프 속도
+        this.jumpSpeedX = (this.dragStart.x - x) / 5; // 점프 속도 설정
     
         // 최대 점프 속도 범위 내에서 클램핑
         this.jumpSpeedX = Math.max(Math.min(this.jumpSpeedX, maxJumpSpeedX), -maxJumpSpeedX);
@@ -92,6 +92,8 @@ class Player {
     // 마우스 드래그 종료
     endDrag() {
         this.dragging = false;
+
+        console.log(this.jumpSpeedX);
     }
 
     update = (dt) => {
