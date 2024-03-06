@@ -40,6 +40,9 @@ class Player {
         this.dragEnd = null;
         this.dragging = false;
 
+        this.jumpCount = 0;
+        this.jumpHeight = 0;
+        this.levels = 0;
     }
 
     get shape() {
@@ -95,27 +98,46 @@ class Player {
         this.jumpSpeedX = Math.max(Math.min(this.jumpSpeedX, maxJumpPower), -maxJumpPower);
 
         this.normalizedDragDistance = Math.min(dragDistance, maxDragDistance) / maxDragDistance; // 정규화된 드래그 거리를 클래스 속성으로 저장
-
-        /*
-
-        // 드래그 거리 계산으로 점프 게이지 설정 (예시)
-        const dragDistance = Math.sqrt(Math.pow(x - this.dragStart.x, 2) + Math.pow(y - this.dragStart.y, 2));
-        this.jumpGauge = Math.min(dragDistance /9, 45);
-    
-        // 양쪽 방향의 최대 점프 속도를 동일하게 설정
-        const maxJumpSpeedX = 15; // 최대 점프 속도
-        this.jumpSpeedX = (this.dragStart.x - x) / 5; // 점프 속도 설정
-    
-        // 최대 점프 속도 범위 내에서 클램핑
-        this.jumpSpeedX = Math.max(Math.min(this.jumpSpeedX, maxJumpSpeedX), -maxJumpSpeedX);
-
-        */
     }
 
     // 마우스 드래그 종료
     endDrag() {
         this.dragging = false;
-        console.log(`Jump Speed X: ${this.jumpSpeedX.toFixed(2)}, Jump Speed Y: ${this.jumpGauge.toFixed(2)}, distance: ${this.normalizedDragDistance}`);
+        this.startJump(); // 점프 시작 기록
+    }
+
+    // 점프 시작 시 호출
+    startJump() {
+        this.startedJumping = true
+        this.jumpCount ++;
+    }
+
+    // 착지 시 호출
+    endJump() {
+        if (this.startedJumping) {
+            const SCREEN_HEIGHT = 200; // 게임 디자인에 맞춰 조정할 스크린 높이 예시 값
+            this.jumpEndY = SCREEN_HEIGHT - this.y; // Record landing position
+
+
+            this.jumpHeight = this.levels * SCREEN_HEIGHT + this.jumpEndY;
+
+            console.log("Jump Count:", this.jumpCount.toFixed(0));// Output total jump height
+            console.log("Jump Height:", this.jumpHeight.toFixed(0)); // Output total jump height
+        
+            // 차트에 점프 데이터 추가
+            window.updateJumpData(this.jumpCount, this.jumpHeight); // 차트 데이터 업데이트
+
+            this.startedJumping = false; // Reset flag
+        }
+    }
+
+    adjustJumpRecordForScreenMove(amount) {
+        // 마지막 점프 기록의 시작점과 종료점 조정
+        if (this.jumpRecords.length > 0) {
+            let lastRecord = this.jumpRecords[this.jumpRecords.length - 1];
+            lastRecord.start += amount;
+            lastRecord.end += amount;
+        }
     }
 
     update = (dt) => {
@@ -136,10 +158,12 @@ class Player {
         if(this.y < -EPSILON) {
             NOW_WORLD.moveSceneTop()
             this.y = NOW_WORLD.nowScene.height - EPSILON
+            this.levels ++;
         }
         if(this.y > NOW_WORLD.nowScene.height + EPSILON) {
             NOW_WORLD.moveSceneBottom()
             this.y = EPSILON
+            this.levels --;
         }
         if(this.x < -EPSILON) {
             NOW_WORLD.moveSceneLeft()
@@ -301,11 +325,17 @@ class Player {
         }
         if(yRectCollide && dp[1] < 0) this.sy = -this.sy
         if(yRectCollide && dp[1] >= 0) {
-            if(this.state == PLAYER_STATE.FALL) this.state = PLAYER_STATE.FELL
-            else if(this.state != PLAYER_STATE.FELL && this.jumpSpeedX === null) this.state = PLAYER_STATE.IDLE
+            if(this.state == PLAYER_STATE.FALL){
+                this.state = PLAYER_STATE.FELL;
+                this.endJump();
+            }else if(this.state != PLAYER_STATE.FELL && this.jumpSpeedX === null){
+                this.state = PLAYER_STATE.IDLE;
+                this.endJump();
+            }
             this.sy = 0
             this.sx = 0
             this.controllable = true
+            this.endJump();
         }
         else {
             this.controllable = false
@@ -401,8 +431,6 @@ class Player {
             CTX.lineTo(arrowEndX, arrowEndY);
             CTX.strokeStyle = 'red';
             CTX.stroke();
-
-            console.log(angle)
         }
     }
 }
